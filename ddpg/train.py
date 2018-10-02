@@ -72,10 +72,11 @@ def ddpg(n_episodes=1000, max_t=1000):
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)), end="")
         if i_episode % 100 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
-        if np.mean(scores_window) >= 13.0:
+        if np.mean(scores_window) >= 30.0:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode - 100,
                                                                                          np.mean(scores_window)))
-            torch.save(agent.qnetwork_local.state_dict(), "../checkpoints/checkpoint.pth")
+            torch.save(agent.actor_local.state_dict(), '../checkpoints/checkpoint_actor.pth')
+            torch.save(agent.critic_local.state_dict(), '../checkpoints/checkpoint_critic.pth')
             break
     return scores
 
