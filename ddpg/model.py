@@ -68,12 +68,14 @@ class Critic(nn.Module):
         self.model_input = nn.Sequential(
             nn.Linear(state_size, fcs1_units),
             nn.ReLU(),
+            #nn.Dropout(p=0.4),
             nn.BatchNorm1d(fcs1_units),
-
         )
+
         self.model_output = nn.Sequential(
             nn.Linear(fcs1_units + action_size, fc2_units),
             nn.ReLU(),
+            #nn.Dropout(p=0.4),
             nn.Linear(fc2_units, 1),
         )
 
