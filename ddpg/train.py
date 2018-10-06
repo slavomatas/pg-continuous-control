@@ -38,6 +38,7 @@ print('States have length:', state_size)
 state = env_info.vector_observations[0]  # get the current state
 score = 0  # initialize the score
 
+
 # Instantiate DQN Agent
 agent = Agent(state_size=state_size, action_size=action_size, random_seed=0)
 
