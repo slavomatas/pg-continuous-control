@@ -210,9 +210,8 @@ if __name__ == "__main__":
                     count_steps += 1
 
             trajectory.clear()
-            '''
-            writer.add_scalar("advantage", traj_adv_v.mean().item(), step_idx)
-            writer.add_scalar("values", traj_ref_v.mean().item(), step_idx)
-            writer.add_scalar("loss_policy", sum_loss_policy / count_steps, step_idx)
-            writer.add_scalar("loss_value", sum_loss_value / count_steps, step_idx)
-            '''
+
+            print("advantage", traj_adv_v.mean().item(), step_idx)
+            print("values", traj_ref_v.mean().item(), step_idx)
+            print("loss_policy", sum_loss_policy / count_steps, step_idx)
+            print("loss_value", sum_loss_value / count_steps, step_idx)

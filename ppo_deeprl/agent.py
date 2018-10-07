@@ -1,5 +1,7 @@
-import torch
 import numpy as np
+
+import torch
+import torch.nn as nn
 
 from utils import Batcher, close_obj
 from torch_utils import tensor
@@ -56,11 +58,8 @@ class PPOAgent(BaseAgent):
         self.online_rewards = np.zeros(config.num_workers)
         self.episode_rewards = []
 
-        #self.states = self.env.reset()
-        #self.states = config.state_normalizer(self.states)
-
         env_info = self.env.reset(train_mode=True)[self.brain_name]
-        self.states = env_info.vector_observations[0]
+        self.states = env_info.vector_observations
         self.states = config.state_normalizer(self.states)
 
     def step(self):
@@ -68,14 +67,12 @@ class PPOAgent(BaseAgent):
         rollout = []
         states = self.states
         for _ in range(config.rollout_length):
-            #states = torch.from_numpy(states)
             actions, log_probs, _, values = self.network(states)
 
-            #next_states, rewards, terminals, _ = self.env.step(actions.cpu().detach().numpy())
-            env_info = self.env.step(actions)[self.brain_name]
-            next_states = env_info.vector_observations[0]  # get the next state
-            rewards = env_info.rewards[0]  # get the reward
-            terminals = env_info.local_done[0]  # see if episode has finished
+            env_info = self.env.step(actions.cpu().detach().numpy())[self.brain_name]
+            next_states = env_info.vector_observations  # get the next state
+            rewards = np.array(env_info.rewards)  # get the reward
+            terminals = np.array(env_info.local_done)  # see if episode has finished
 
             self.online_rewards += rewards
             rewards = config.reward_normalizer(rewards)
@@ -83,6 +80,7 @@ class PPOAgent(BaseAgent):
                 if terminals[i]:
                     self.episode_rewards.append(self.online_rewards[i])
                     self.online_rewards[i] = 0
+
             next_states = config.state_normalizer(next_states)
             rollout.append([states, values.detach(), actions.detach(), log_probs.detach(), rewards, 1 - terminals])
             states = next_states

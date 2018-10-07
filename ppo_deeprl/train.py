@@ -41,7 +41,13 @@ def ppo_continuous():
 
     config.network_fn = lambda: GaussianActorCriticNet(
         state_size, action_size, actor_body=FCBody(state_size),
-        critic_body=FCBody(action_size))
+        critic_body=FCBody(state_size))
+
+    """
+    config.network_fn = lambda: CategoricalActorCriticNet(
+        state_size, action_size, actor_body=FCBody(state_size),
+        critic_body=FCBody(state_size))
+    """
 
     config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
     config.discount = 0.99
