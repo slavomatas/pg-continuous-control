@@ -71,6 +71,7 @@ class RunningStatsNormalizer(BaseNormalizer):
             x = np.asscalar(x)
         return x
 
+
 class RescaleNormalizer(BaseNormalizer):
     def __init__(self, coef=1.0):
         BaseNormalizer.__init__(self)
@@ -81,9 +82,11 @@ class RescaleNormalizer(BaseNormalizer):
             x = np.asarray(x)
         return self.coef * x
 
+
 class ImageNormalizer(RescaleNormalizer):
     def __init__(self):
         RescaleNormalizer.__init__(self, 1.0 / 255)
+
 
 class SignNormalizer(BaseNormalizer):
     def __call__(self, x):

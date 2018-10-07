@@ -1,12 +1,18 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from utils import *
+from torch_utils import tensor
+from config import Config
+
 
 class BaseNet:
     def __init__(self):
         pass
+
 
 def layer_init(layer, w_scale=1.0):
     nn.init.orthogonal_(layer.weight.data)
@@ -29,49 +35,35 @@ class FCBody(nn.Module):
         return x
 
 
-class DummyBody(nn.Module):
-    def __init__(self, state_dim):
-        super(DummyBody, self).__init__()
-        self.feature_dim = state_dim
-
-    def forward(self, x):
-        return x
-
-
 class ActorCriticNet(nn.Module):
-    def __init__(self, state_dim, action_dim, phi_body, actor_body, critic_body):
+    def __init__(self, state_dim, action_dim, actor_body, critic_body):
         super(ActorCriticNet, self).__init__()
-        if phi_body is None: phi_body = DummyBody(state_dim)
-        if actor_body is None: actor_body = DummyBody(phi_body.feature_dim)
-        if critic_body is None: critic_body = DummyBody(phi_body.feature_dim)
-        self.phi_body = phi_body
+
         self.actor_body = actor_body
         self.critic_body = critic_body
+
         self.fc_action = layer_init(nn.Linear(actor_body.feature_dim, action_dim), 1e-3)
         self.fc_critic = layer_init(nn.Linear(critic_body.feature_dim, 1), 1e-3)
 
         self.actor_params = list(self.actor_body.parameters()) + list(self.fc_action.parameters())
         self.critic_params = list(self.critic_body.parameters()) + list(self.fc_critic.parameters())
-        self.phi_params = list(self.phi_body.parameters())
 
 
 class GaussianActorCriticNet(nn.Module, BaseNet):
     def __init__(self,
                  state_dim,
                  action_dim,
-                 phi_body=None,
                  actor_body=None,
                  critic_body=None):
         super(GaussianActorCriticNet, self).__init__()
-        self.network = ActorCriticNet(state_dim, action_dim, phi_body, actor_body, critic_body)
+        self.network = ActorCriticNet(state_dim, action_dim, actor_body, critic_body)
         self.std = nn.Parameter(torch.ones(1, action_dim))
         self.to(Config.DEVICE)
 
     def forward(self, obs, action=None):
         obs = tensor(obs)
-        phi = self.network.phi_body(obs)
-        phi_a = self.network.actor_body(phi)
-        phi_v = self.network.critic_body(phi)
+        phi_a = self.network.actor_body(obs)
+        phi_v = self.network.critic_body(obs)
         mean = F.tanh(self.network.fc_action(phi_a))
         v = self.network.fc_critic(phi_v)
         dist = torch.distributions.Normal(mean, torch.FloatTensor(self.std))

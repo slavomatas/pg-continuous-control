@@ -1,48 +1,47 @@
-import time
 import torch
-import numpy as np
+
+from config import Config
+from utils import run_steps
+from torch_utils import random_seed, select_device, set_one_thread
 
 from agent import PPOAgent
-from config import Config
-from torch_utils import random_seed, select_device, set_one_thread
 from model import FCBody, GaussianActorCriticNet
-from task import ParallelizedTask
 
-
-def run_steps(agent):
-    random_seed()
-    config = agent.config
-    agent_name = agent.__class__.__name__
-    t0 = time.time()
-    while True:
-        if config.save_interval and not agent.total_steps % config.save_interval:
-            agent.save('data/model-%s-%s-%s.bin' % (agent_name, config.task_name, config.tag))
-        if config.log_interval and not agent.total_steps % config.log_interval and len(agent.episode_rewards):
-            rewards = agent.episode_rewards
-            agent.episode_rewards = []
-            config.logger.info('total steps %d, returns %.2f/%.2f/%.2f/%.2f (mean/median/min/max), %.2f steps/s' % (
-                agent.total_steps, np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards),
-                config.log_interval / (time.time() - t0)))
-            t0 = time.time()
-        if config.eval_interval and not agent.total_steps % config.eval_interval:
-            agent.eval_episodes()
-        if config.max_steps and agent.total_steps >= config.max_steps:
-            agent.close()
-            break
-        agent.step()
+from unityagents import UnityEnvironment
 
 
 def ppo_continuous():
+
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    env = UnityEnvironment(file_name="../Reacher_Linux/Reacher.x86_64", no_graphics=True)
+
+    # get the default brain
+    brain_name = env.brain_names[0]
+    brain = env.brains[brain_name]
+
+    # reset the environment
+    env_info = env.reset(train_mode=True)[brain_name]
+
+    # number of agents in the environment
+    print('Number of agents:', len(env_info.agents))
+
+    # number of actions
+    action_size = brain.vector_action_space_size
+    print('Number of actions:', action_size)
+
+    # examine the state space
+    state = env_info.vector_observations[0]
+    print('States look like:', state)
+    state_size = len(state)
+    print('States have length:', state_size)
+
     config = Config()
-    config.num_workers = 1
-    task_fn = lambda log_dir: Roboschool('RoboschoolHopper-v1', log_dir=log_dir)
-    config.task_fn = lambda: ParallelizedTask(task_fn, config.num_workers,
-                                              log_dir=get_default_log_dir(ppo_continuous.__name__))
-    config.eval_env = task_fn(None)
+    config.env = env
 
     config.network_fn = lambda: GaussianActorCriticNet(
-        config.state_dim, config.action_dim, actor_body=FCBody(config.state_dim),
-        critic_body=FCBody(config.state_dim))
+        state_size, action_size, actor_body=FCBody(state_size),
+        critic_body=FCBody(action_size))
 
     config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
     config.discount = 0.99

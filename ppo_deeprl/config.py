@@ -1,8 +1,7 @@
 import argparse
 import torch
 
-from normalizer import *
-
+from normalizer import RescaleNormalizer
 
 class Config:
     DEVICE = torch.device('cpu')
