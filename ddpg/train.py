@@ -39,9 +39,11 @@ state = env_info.vector_observations[0]  # get the current state
 score = 0  # initialize the score
 
 
-# Instantiate DQN Agent
+# Instantiate DDPG Agent
 agent = Agent(state_size=state_size, action_size=action_size, random_seed=0)
 
+print(torch.cuda.is_available())
+print(torch.rand(3,3).cuda())
 
 def ddpg(n_episodes=1000, max_t=1000):
     """Deep Deterministic Policy Gradient
