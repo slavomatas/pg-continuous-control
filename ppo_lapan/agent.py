@@ -85,11 +85,8 @@ class ExperienceSource:
         :param steps_delta: how many steps to do between experience items
         :param vectorized: support of vectorized envs from OpenAI universe
         """
-        #assert isinstance(env, (gym.Env, list, tuple))
-        #assert isinstance(agent, BaseAgent)
         assert isinstance(steps_count, int)
         assert steps_count >= 1
-        #assert isinstance(vectorized, bool)
         if isinstance(env, (list, tuple)):
             self.pool = env
         else:
@@ -108,8 +105,6 @@ class ExperienceSource:
         for env in self.pool:
             env_info = env.reset(train_mode=True)[self.brain_name]
             obs = env_info.vector_observations[0]
-            # if the environment is vectorized, all it's output is lists of results.
-            # Details are here: https://github.com/openai/universe/blob/master/doc/env_semantics.rst
             if self.vectorized:
                 obs_len = len(obs)
                 states.extend(obs)
@@ -122,7 +117,6 @@ class ExperienceSource:
                 histories.append(deque(maxlen=self.steps_count))
                 cur_rewards.append(0.0)
                 cur_steps.append(0)
-                #agent_states.append(self.agent.initial_state())
                 agent_states.append(None)
 
         iter_idx = 0
@@ -146,7 +140,6 @@ class ExperienceSource:
 
             global_ofs = 0
             for env_idx, (env, action_n) in enumerate(zip(self.pool, grouped_actions)):
-                #next_state, r, is_done, _ = env.step(action_n[0])
                 env_info = env.step(action_n[0])[self.brain_name]
                 next_state = env_info.vector_observations[0]  # get the next state
                 r = env_info.rewards[0]  # get the reward
@@ -179,12 +172,9 @@ class ExperienceSource:
                         cur_rewards[idx] = 0.0
                         cur_steps[idx] = 0
 
-                        # vectorized envs are reset automatically
-                        #states[idx] = env.reset() if not self.vectorized else None
                         env_info = env.reset(train_mode=True)[self.brain_name]
                         states[idx] = env_info.vector_observations[0]
 
-                        #agent_states[idx] = self.agent.initial_state()
                         agent_states[idx] = None
                         history.clear()
                 global_ofs += len(action_n)

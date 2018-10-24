@@ -1,12 +1,12 @@
 import os
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-
+import sys
 from collections import deque
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from unityagents import UnityEnvironment
 
-import sys
 sys.path.append("../")
 
 from agent import Agent
@@ -38,12 +38,12 @@ print('States have length:', state_size)
 state = env_info.vector_observations[0]  # get the current state
 score = 0  # initialize the score
 
-
 # Instantiate DDPG Agent
 agent = Agent(state_size=state_size, action_size=action_size, random_seed=0)
 
 print(torch.cuda.is_available())
-print(torch.rand(3,3).cuda())
+print(torch.rand(3, 3).cuda())
+
 
 def ddpg(n_episodes=1000, max_t=1000):
     """Deep Deterministic Policy Gradient
@@ -88,7 +88,7 @@ scores = ddpg()
 
 # plot the scores
 fig = plt.figure()
-#ax = fig.add_subplot(111)
+# ax = fig.add_subplot(111)
 plt.plot(np.arange(len(scores)), scores)
 plt.ylabel('Score')
 plt.xlabel('Episode #')

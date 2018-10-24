@@ -1,11 +1,14 @@
 import math
+import time
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from agent import Actor, Critic, AgentA2C, ExperienceSource, RewardTracker, float32_preprocessor
-# from tensorboardX import SummaryWriter
+from agent import Actor, Critic, AgentA2C, ExperienceSource, RewardTracker
 from unityagents import UnityEnvironment
+
+# from tensorboardX import SummaryWriter
 
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
@@ -18,24 +21,33 @@ PPO_EPS = 0.2
 PPO_EPOCHES = 10
 PPO_BATCH_SIZE = 64
 
-TEST_ITERS = 1000
+TEST_ITERS = 5*2049
 
 
-def test_net(net, env, count=10, device="cpu"):
+def test_net(net, env, brain_name, count=10, device="cpu"):
     rewards = 0.0
     steps = 0
+
     for _ in range(count):
-        obs = env.reset()
+        env_info = env.reset(train_mode=True)[brain_name]
+        obs = env_info.vector_observations
         while True:
-            obs_v = float32_preprocessor([obs]).to(device)
+            # obs_v = float32_preprocessor([obs]).to(device)
+            obs_v = torch.from_numpy(obs).float().unsqueeze(0).to(device)
             mu_v = net(obs_v)[0]
             action = mu_v.squeeze(dim=0).data.cpu().numpy()
             action = np.clip(action, -1, 1)
-            obs, reward, done, _ = env.step(action)
+
+            env_info = env.step(action)[brain_name]
+            obs = env_info.vector_observations[0]  # get the next state
+            reward = env_info.rewards[0]  # get the reward
+            done = env_info.local_done[0]  # see if episode has finished
+
             rewards += reward
             steps += 1
             if done:
                 break
+
     return rewards / count, steps / count
 
 
@@ -76,17 +88,14 @@ def calc_adv_ref(trajectory, net_crt, states_v, device="cpu"):
 
 
 if __name__ == "__main__":
-    '''
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda", default=False, action='store_true', help='Enable CUDA')
-    parser.add_argument("-n", "--name", required=True, help="Name of the run")
-    parser.add_argument("-e", "--env", default=ENV_ID, help="Environment id, default=" + ENV_ID)
-    args = parser.parse_args()
-    '''
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    print(torch.cuda.is_available())
+    print(torch.rand(3, 3).cuda())
+
     env = UnityEnvironment(file_name="../Reacher_Linux/Reacher.x86_64", no_graphics=True)
+    # test_env = UnityEnvironment(file_name="../Reacher_Linux/Reacher.x86_64", no_graphics=False)
 
     # get the default brain
     brain_name = env.brain_names[0]
@@ -134,21 +143,17 @@ if __name__ == "__main__":
                 # writer.add_scalar("episode_steps", np.mean(steps), step_idx)
                 tracker.reward(np.mean(rewards), step_idx)
 
-            '''
             if step_idx % TEST_ITERS == 0:
                 ts = time.time()
-                rewards, steps = test_net(net_act, test_env, device=device)
+                rewards, steps = test_net(net_act, env, brain_name, device=device)
                 print("Test done in %.2f sec, reward %.3f, steps %d" % (time.time() - ts, rewards, steps))
-                #writer.add_scalar("test_reward", rewards, step_idx)
-                #writer.add_scalar("test_steps", steps, step_idx)
                 if best_reward is None or best_reward < rewards:
                     if best_reward is not None:
                         print("Best reward updated: %.3f -> %.3f" % (best_reward, rewards))
                         name = "best_%+.3f_%d.dat" % (rewards, step_idx)
-                        fname = os.path.join(save_path, name)
-                        torch.save(net_act.state_dict(), fname)
+                        # fname = os.path.join(save_path, name)
+                        # torch.save(net_act.state_dict(), fname)
                     best_reward = rewards
-            '''
 
             trajectory.append(exp)
             if len(trajectory) < TRAJECTORY_SIZE:
@@ -174,11 +179,10 @@ if __name__ == "__main__":
             sum_loss_policy = 0.0
             count_steps = 0
 
-            print("actor/critic training")
+            # print("actor/critic training")
 
             for epoch in range(PPO_EPOCHES):
                 for batch_ofs in range(0, len(trajectory), PPO_BATCH_SIZE):
-
                     states_v = traj_states_v[batch_ofs:batch_ofs + PPO_BATCH_SIZE]
                     actions_v = traj_actions_v[batch_ofs:batch_ofs + PPO_BATCH_SIZE]
                     batch_adv_v = traj_adv_v[batch_ofs:batch_ofs + PPO_BATCH_SIZE].unsqueeze(-1)
@@ -186,7 +190,7 @@ if __name__ == "__main__":
                     batch_old_logprob_v = old_logprob_v[batch_ofs:batch_ofs + PPO_BATCH_SIZE]
 
                     # critic training
-                    #print("critic training batch_ofs {}".format(batch_ofs))
+                    # print("critic training batch_ofs {}".format(batch_ofs))
                     opt_crt.zero_grad()
                     value_v = net_crt(states_v)
                     loss_value_v = F.mse_loss(value_v.squeeze(-1), batch_ref_v)
@@ -194,7 +198,7 @@ if __name__ == "__main__":
                     opt_crt.step()
 
                     # actor training
-                    #print("actor training batch_ofs {}".format(batch_ofs))
+                    # print("actor training batch_ofs {}".format(batch_ofs))
                     opt_act.zero_grad()
                     mu_v = net_act(states_v)
                     logprob_pi_v = calc_logprob(mu_v, net_act.logstd, actions_v)
@@ -211,7 +215,9 @@ if __name__ == "__main__":
 
             trajectory.clear()
 
-            print("advantage", traj_adv_v.mean().item(), step_idx)
-            print("values", traj_ref_v.mean().item(), step_idx)
-            print("loss_policy", sum_loss_policy / count_steps, step_idx)
-            print("loss_value", sum_loss_value / count_steps, step_idx)
+            '''
+            print("Advantage", traj_adv_v.mean().item(), step_idx)
+            print("Values", traj_ref_v.mean().item(), step_idx)
+            print("Loss_policy", sum_loss_policy / count_steps, step_idx)
+            print("Loss_value", sum_loss_value / count_steps, step_idx)
+            '''

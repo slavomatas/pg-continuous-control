@@ -25,12 +25,17 @@ class BaseAgent:
         raise Exception('eval_step not implemented')
 
     def eval_episode(self):
-        env = self.config.eval_env
-        state = env.reset()
+
+        env_info = self.env.reset(train_mode=True)[self.brain_name]
+        states = env_info.vector_observations
+
         total_rewards = 0
         while True:
-            action = self.eval_step(state)
-            state, reward, done, _ = env.step(action)
+            actions, log_probs, _, values = self.network(states)
+            env_info = self.env.step(actions.cpu().detach().numpy())[self.brain_name]
+            states = env_info.vector_observations  # get the next state
+            reward = env_info.rewards[0]  # get the reward
+            done = env_info.local_done[0]  # see if episode has finished
             total_rewards += reward
             if done:
                 break
@@ -40,7 +45,7 @@ class BaseAgent:
         rewards = []
         for ep in range(self.config.eval_episodes):
             rewards.append(self.eval_episode())
-        self.config.logger.info('evaluation episode return: %f(%f)' % (
+        print('\nEvaluation episode return: %f(%f)' % (
             np.mean(rewards), np.std(rewards) / np.sqrt(len(rewards))))
 
 
@@ -108,6 +113,8 @@ class PPOAgent(BaseAgent):
             processed_rollout[i] = [states, actions, log_probs, returns, advantages]
 
         states, actions, log_probs_old, returns, advantages = map(lambda x: torch.cat(x, dim=0), zip(*processed_rollout))
+
+        # Normalize advantages
         advantages = (advantages - advantages.mean()) / advantages.std()
 
         batcher = Batcher(states.size(0) // config.num_mini_batches, [np.arange(states.size(0))])

@@ -1,36 +1,12 @@
 import time
 import datetime
+import torch
+from collections import deque
+
 import numpy as np
 
 from pathlib import Path
 from torch_utils import random_seed
-
-
-def run_steps(agent):
-    random_seed()
-    config = agent.config
-    agent_name = agent.__class__.__name__
-    t0 = time.time()
-    while True:
-        if config.save_interval and not agent.total_steps % config.save_interval:
-            agent.save('data/model-%s-%s-%s.bin' % (agent_name, config.task_name, config.tag))
-
-        if config.log_interval and not agent.total_steps % config.log_interval and len(agent.episode_rewards):
-            rewards = agent.episode_rewards
-            agent.episode_rewards = []
-            print('total steps %d, returns %.2f/%.2f/%.2f/%.2f (mean/median/min/max), %.2f steps/s' % (
-                agent.total_steps, np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards),
-                config.log_interval / (time.time() - t0)))
-            t0 = time.time()
-
-        if config.eval_interval and not agent.total_steps % config.eval_interval:
-            agent.eval_episodes()
-
-        if config.max_steps and agent.total_steps >= config.max_steps:
-            agent.close()
-            break
-
-        agent.step()
 
 
 def get_time_str():
