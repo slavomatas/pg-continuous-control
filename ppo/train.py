@@ -42,16 +42,17 @@ def ppo():
         state_size, action_size, actor_body=FCBody(state_size),
         critic_body=FCBody(state_size))
 
-    config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
+    #config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
+    #config.optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-3, eps=1e-3)
     config.discount = 0.99
-    config.use_gae = False
+    config.use_gae = True
     config.gae_tau = 0.95
     config.gradient_clip = 5
-    config.rollout_length = 2048
+    config.rollout_length = 20*512
     config.optimization_epochs = 10
-    config.num_mini_batches = 32
+    config.num_mini_batches = 512
     config.ppo_ratio_clip = 0.2
-    config.log_interval = 2048
+    config.log_interval = 20*512
     config.max_steps = 2e7
     config.eval_episodes = 10
     # config.logger = get_logger()
@@ -64,7 +65,7 @@ def ppo():
     random_seed()
     config = agent.config
     t0 = time.time()
-    scores = [] # last 100 scores
+    scores = []
     scores_window = deque(maxlen=100)  # last 100 scores
 
     while True:
@@ -84,14 +85,13 @@ def ppo():
             print('Total steps %d, returns %d/%.2f/%.2f/%.2f/%.2f (count/mean/median/min/max), %.2f steps/s' % (
                 agent.total_steps, len(rewards), np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards),
                 config.log_interval / (time.time() - t0)))
+
             t0 = time.time()
 
+        '''
         if agent.total_steps and agent.total_steps % 10*config.log_interval == 0:
             agent.eval_episodes()
-
-        if config.max_steps and agent.total_steps >= config.max_steps:
-            agent.close()
-            break
+        '''
 
         agent.step()
 

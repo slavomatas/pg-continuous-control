@@ -2,6 +2,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from utils import Batcher, close_obj
 from torch_utils import tensor
@@ -58,7 +59,12 @@ class PPOAgent(BaseAgent):
         self.brain_name = self.env.brain_names[0]
 
         self.network = config.network_fn()
-        self.opt = config.optimizer_fn(self.network.parameters())
+
+        self.opt_act = torch.optim.Adam(self.network.network.actor_params, lr=1e-4)
+        self.opt_crt = torch.optim.Adam(self.network.network.critic_params, lr=1e-3)
+
+        #self.opt = config.optimizer_fn(self.network.parameters())
+
         self.total_steps = 0
         self.online_rewards = np.zeros(config.num_workers)
         self.episode_rewards = []
@@ -130,18 +136,32 @@ class PPOAgent(BaseAgent):
                 sampled_advantages = advantages[batch_indices]
 
                 _, log_probs, entropy_loss, values = self.network(sampled_states, sampled_actions)
+
+                #value_loss = 0.5 * (sampled_returns - values).pow(2).mean()
+                value_loss = F.mse_loss(sampled_returns, values)
+
+                # critic training
+                self.opt_crt.zero_grad()
+                value_loss.backward()
+                self.opt_crt.step()
+
                 ratio = (log_probs - sampled_log_probs_old).exp()
                 obj = ratio * sampled_advantages
                 obj_clipped = ratio.clamp(1.0 - self.config.ppo_ratio_clip,
                                           1.0 + self.config.ppo_ratio_clip) * sampled_advantages
                 policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * entropy_loss.mean()
 
-                value_loss = 0.5 * (sampled_returns - values).pow(2).mean()
+                # actor training
+                self.opt_act.zero_grad()
+                policy_loss.backward()
+                self.opt_act.step()
 
+                '''
                 self.opt.zero_grad()
                 (policy_loss + value_loss).backward()
                 nn.utils.clip_grad_norm_(self.network.parameters(), config.gradient_clip)
                 self.opt.step()
+                '''
 
         steps = config.rollout_length * config.num_workers
         self.total_steps += steps
