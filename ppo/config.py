@@ -11,7 +11,7 @@ class Config:
         self.optimizer_fn = None
         self.actor_optimizer_fn = None
         self.critic_optimizer_fn = None
-        self.network_fn = None
+        self.actor_critic_fn = None
         self.actor_network_fn = None
         self.critic_network_fn = None
         self.replay_fn = None

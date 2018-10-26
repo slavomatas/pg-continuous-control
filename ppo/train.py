@@ -1,12 +1,12 @@
+from collections import deque
+
+import numpy as np
 import time
 import torch
-import numpy as np
-
-from collections import deque
-from config import Config
-from torch_utils import select_device, set_one_thread, random_seed
-from model import ActorBody, CriticBody, GaussianActorCriticNet
 from agent import PPOAgent
+from config import Config
+from model import Actor, Critic, ActorCritic
+from torch_utils import select_device, set_one_thread, random_seed
 from unityagents import UnityEnvironment
 
 
@@ -38,19 +38,18 @@ def ppo():
     config = Config()
     config.env = env
 
-    config.network_fn = lambda: GaussianActorCriticNet(
-        state_size, action_size, actor_body=ActorBody(state_size, action_size),
-        critic_body=CriticBody(state_size))
+    config.actor_critic_fn = lambda: ActorCritic(actor=Actor(state_size, action_size),
+                                                 critic=Critic(state_size))
 
     config.discount = 0.99
     config.use_gae = True
     config.gae_tau = 0.95
     config.gradient_clip = 5
-    config.rollout_length = 20*512
+    config.rollout_length = 20 * 512
     config.optimization_epochs = 10
     config.num_mini_batches = 512
     config.ppo_ratio_clip = 0.2
-    config.log_interval = 20*512
+    config.log_interval = 20 * 512
     config.max_steps = 2e7
     config.eval_episodes = 10
     # config.logger = get_logger()
@@ -76,7 +75,8 @@ def ppo():
 
             print('\r===> Average Score: {:d} episodes {:.2f}'.format(len(scores), np.mean(scores_window)))
             if np.mean(scores_window) >= 30.0:
-                print('\nEnvironment solved in {:d}  episodes!\tAverage Score: {:.2f}'.format(len(scores_window), np.mean(scores_window)))
+                print('\nEnvironment solved in {:d}  episodes!\tAverage Score: {:.2f}'.format(len(scores_window),
+                                                                                              np.mean(scores_window)))
                 torch.save(agent.network.state_dict(), '../checkpoints/ppo_checkpoint.pth')
                 break
 
@@ -85,11 +85,6 @@ def ppo():
                 config.log_interval / (time.time() - t0)))
 
             t0 = time.time()
-
-        '''
-        if agent.total_steps and agent.total_steps % 10*config.log_interval == 0:
-            agent.eval_episodes()
-        '''
 
         agent.step()
 

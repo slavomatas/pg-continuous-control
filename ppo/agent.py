@@ -58,10 +58,11 @@ class PPOAgent(BaseAgent):
         self.env = config.env
         self.brain_name = self.env.brain_names[0]
 
-        self.network = config.network_fn()
+        self.actor_critic = config.actor_critic_fn()
 
-        self.opt_act = torch.optim.Adam(self.network.network.actor_params, lr=1e-4)
-        self.opt_crt = torch.optim.Adam(self.network.network.critic_params, lr=1e-3)
+        self.opt_act = torch.optim.Adam(self.actor_critic.actor.parameters(), lr=1e-4)
+        self.opt_crt = torch.optim.Adam(self.actor_critic.critic.parameters(), lr=1e-3)
+        self.opt = torch.optim.Adam(self.actor_critic.actor.parameters(), lr=1e-4)
 
         self.total_steps = 0
         self.online_rewards = np.zeros(config.num_workers)
@@ -76,7 +77,7 @@ class PPOAgent(BaseAgent):
         rollout = []
         states = self.states
         for _ in range(config.rollout_length):
-            actions, log_probs, _, values = self.network(states)
+            actions, log_probs, _, values = self.actor_critic(states)
 
             env_info = self.env.step(actions.cpu().detach().numpy())[self.brain_name]
             next_states = env_info.vector_observations  # get the next state
@@ -95,12 +96,13 @@ class PPOAgent(BaseAgent):
             states = next_states
 
         self.states = states
-        pending_value = self.network(states)[-1]
+        pending_value = self.actor_critic(states)[-1]
         rollout.append([states, pending_value, None, None, None, None])
 
         processed_rollout = [None] * (len(rollout) - 1)
         advantages = tensor(np.zeros((config.num_workers, 1)))
         returns = pending_value.detach()
+
         for i in reversed(range(len(rollout) - 1)):
             states, value, actions, log_probs, rewards, terminals = rollout[i]
             terminals = tensor(terminals).unsqueeze(1)
@@ -133,25 +135,32 @@ class PPOAgent(BaseAgent):
                 sampled_returns = returns[batch_indices]
                 sampled_advantages = advantages[batch_indices]
 
-                _, log_probs, entropy_loss, values = self.network(sampled_states, sampled_actions)
-
-                value_loss = F.mse_loss(sampled_returns, values)
+                _, log_probs, entropy_loss, values = self.actor_critic(sampled_states, sampled_actions)
 
                 # critic training
+                value_loss = 0.5 * F.mse_loss(sampled_returns, values)
+
                 self.opt_crt.zero_grad()
                 value_loss.backward()
                 self.opt_crt.step()
 
+                # actor training
                 ratio = (log_probs - sampled_log_probs_old).exp()
                 obj = ratio * sampled_advantages
                 obj_clipped = ratio.clamp(1.0 - self.config.ppo_ratio_clip,
                                           1.0 + self.config.ppo_ratio_clip) * sampled_advantages
                 policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * entropy_loss.mean()
 
-                # actor training
                 self.opt_act.zero_grad()
                 policy_loss.backward()
                 self.opt_act.step()
+
+                '''
+                self.opt.zero_grad()
+                (policy_loss + value_loss).backward()
+                nn.utils.clip_grad_norm_(self.actor_critic.parameters(), config.gradient_clip)
+                self.opt.step()
+                '''
 
         steps = config.rollout_length * config.num_workers
         self.total_steps += steps
