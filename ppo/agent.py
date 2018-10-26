@@ -63,8 +63,6 @@ class PPOAgent(BaseAgent):
         self.opt_act = torch.optim.Adam(self.network.network.actor_params, lr=1e-4)
         self.opt_crt = torch.optim.Adam(self.network.network.critic_params, lr=1e-3)
 
-        #self.opt = config.optimizer_fn(self.network.parameters())
-
         self.total_steps = 0
         self.online_rewards = np.zeros(config.num_workers)
         self.episode_rewards = []

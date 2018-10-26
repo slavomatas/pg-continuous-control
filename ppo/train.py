@@ -5,7 +5,7 @@ import numpy as np
 from collections import deque
 from config import Config
 from torch_utils import select_device, set_one_thread, random_seed
-from model import FCBody, GaussianActorCriticNet
+from model import ActorBody, CriticBody, GaussianActorCriticNet
 from agent import PPOAgent
 from unityagents import UnityEnvironment
 
@@ -39,11 +39,9 @@ def ppo():
     config.env = env
 
     config.network_fn = lambda: GaussianActorCriticNet(
-        state_size, action_size, actor_body=FCBody(state_size),
-        critic_body=FCBody(state_size))
+        state_size, action_size, actor_body=ActorBody(state_size, action_size),
+        critic_body=CriticBody(state_size))
 
-    #config.optimizer_fn = lambda params: torch.optim.Adam(params, 3e-4, eps=1e-5)
-    #config.optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-3, eps=1e-3)
     config.discount = 0.99
     config.use_gae = True
     config.gae_tau = 0.95
