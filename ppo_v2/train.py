@@ -13,13 +13,13 @@ from unityagents import UnityEnvironment
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
 
-TRAJECTORY_SIZE = 2049
+TRAJECTORY_SIZE = 10*512
 LEARNING_RATE_ACTOR = 1e-4
 LEARNING_RATE_CRITIC = 1e-3
 
 PPO_EPS = 0.2
 PPO_EPOCHES = 10
-PPO_BATCH_SIZE = 64
+PPO_BATCH_SIZE = 512
 
 TEST_ITERS = 5*2049
 
@@ -143,6 +143,7 @@ if __name__ == "__main__":
                 # writer.add_scalar("episode_steps", np.mean(steps), step_idx)
                 tracker.reward(np.mean(rewards), step_idx)
 
+            '''
             if step_idx % TEST_ITERS == 0:
                 ts = time.time()
                 rewards, steps = test_net(net_act, env, brain_name, device=device)
@@ -154,6 +155,7 @@ if __name__ == "__main__":
                         # fname = os.path.join(save_path, name)
                         # torch.save(net_act.state_dict(), fname)
                     best_reward = rewards
+            '''
 
             trajectory.append(exp)
             if len(trajectory) < TRAJECTORY_SIZE:

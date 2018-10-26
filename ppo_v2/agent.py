@@ -1,14 +1,12 @@
 import sys
-import time
-import numpy as np
+from collections import namedtuple, deque
 
+import numpy as np
+import time
 import torch
 import torch.nn as nn
 
-from collections import namedtuple, deque
-
-
-HID_SIZE = 64
+HID_SIZE = 256
 
 
 def float32_preprocessor(states):
@@ -76,6 +74,7 @@ class ExperienceSource:
 
     Every experience contains n list of Experience entries
     """
+
     def __init__(self, env, agent, brain_name, steps_count=2, steps_delta=1, vectorized=False):
         """
         Create simple experience source
@@ -105,12 +104,9 @@ class ExperienceSource:
         for env in self.pool:
             env_info = env.reset(train_mode=True)[self.brain_name]
             obs = env_info.vector_observations[0]
-            if self.vectorized:
-                obs_len = len(obs)
-                states.extend(obs)
-            else:
-                obs_len = 1
-                states.append(obs)
+
+            obs_len = 1
+            states.append(obs)
             env_lens.append(obs_len)
 
             for _ in range(obs_len):
@@ -130,12 +126,14 @@ class ExperienceSource:
                 else:
                     states_input.append(state)
                     states_indices.append(idx)
+
             if states_input:
                 states_actions, new_agent_states = self.agent(states_input, agent_states)
                 for idx, action in enumerate(states_actions):
                     g_idx = states_indices[idx]
                     actions[g_idx] = action
                     agent_states[g_idx] = new_agent_states[idx]
+
             grouped_actions = _group_list(actions, env_lens)
 
             global_ofs = 0
@@ -204,7 +202,7 @@ def _group_list(items, lens):
     res = []
     cur_ofs = 0
     for g_len in lens:
-        res.append(items[cur_ofs:cur_ofs+g_len])
+        res.append(items[cur_ofs:cur_ofs + g_len])
         cur_ofs += g_len
     return res
 
@@ -222,7 +220,7 @@ class RewardTracker:
         return self
 
     def __exit__(self, *args):
-        #self.writer.close()
+        # self.writer.close()
         pass
 
     def reward(self, reward, frame, epsilon=None):
@@ -244,4 +242,3 @@ class RewardTracker:
         self.writer.add_scalar("reward", reward, frame)
         '''
         return mean_reward if len(self.total_rewards) > 30 else None
-
