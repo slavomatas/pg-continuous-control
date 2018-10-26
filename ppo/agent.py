@@ -1,11 +1,8 @@
 import numpy as np
-
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
-from utils import Batcher, close_obj
 from torch_utils import tensor
+from utils import Batcher, close_obj
 
 
 class BaseAgent:
@@ -77,7 +74,7 @@ class PPOAgent(BaseAgent):
         rollout = []
         states = self.states
         for _ in range(config.rollout_length):
-            actions, log_probs, _, values = self.actor_critic(states)
+            actions, new_log_probs, _, values = self.actor_critic(states)
 
             env_info = self.env.step(actions.cpu().detach().numpy())[self.brain_name]
             next_states = env_info.vector_observations  # get the next state
@@ -92,7 +89,7 @@ class PPOAgent(BaseAgent):
                     self.online_rewards[i] = 0
 
             next_states = config.state_normalizer(next_states)
-            rollout.append([states, values.detach(), actions.detach(), log_probs.detach(), rewards, 1 - terminals])
+            rollout.append([states, values.detach(), actions.detach(), new_log_probs.detach(), rewards, 1 - terminals])
             states = next_states
 
         self.states = states
@@ -104,7 +101,7 @@ class PPOAgent(BaseAgent):
         returns = pending_value.detach()
 
         for i in reversed(range(len(rollout) - 1)):
-            states, value, actions, log_probs, rewards, terminals = rollout[i]
+            states, value, actions, new_log_probs, rewards, terminals = rollout[i]
             terminals = tensor(terminals).unsqueeze(1)
             rewards = tensor(rewards).unsqueeze(1)
             actions = tensor(actions)
@@ -116,9 +113,10 @@ class PPOAgent(BaseAgent):
             else:
                 td_error = rewards + config.discount * terminals * next_value.detach() - value.detach()
                 advantages = advantages * config.gae_tau * config.discount * terminals + td_error
-            processed_rollout[i] = [states, actions, log_probs, returns, advantages]
+            processed_rollout[i] = [states, actions, new_log_probs, returns, advantages]
 
-        states, actions, log_probs_old, returns, advantages = map(lambda x: torch.cat(x, dim=0), zip(*processed_rollout))
+        states, actions, log_probs_old, returns, advantages = map(lambda x: torch.cat(x, dim=0),
+                                                                  zip(*processed_rollout))
 
         # Normalize advantages
         advantages = (advantages - advantages.mean()) / advantages.std()
@@ -135,7 +133,7 @@ class PPOAgent(BaseAgent):
                 sampled_returns = returns[batch_indices]
                 sampled_advantages = advantages[batch_indices]
 
-                _, log_probs, entropy_loss, values = self.actor_critic(sampled_states, sampled_actions)
+                _, new_log_probs, entropy_loss, values = self.actor_critic(sampled_states, sampled_actions)
 
                 # critic training
                 value_loss = 0.5 * F.mse_loss(sampled_returns, values)
@@ -145,10 +143,11 @@ class PPOAgent(BaseAgent):
                 self.opt_crt.step()
 
                 # actor training
-                ratio = (log_probs - sampled_log_probs_old).exp()
+                ratio = (new_log_probs - sampled_log_probs_old).exp()
                 obj = ratio * sampled_advantages
                 obj_clipped = ratio.clamp(1.0 - self.config.ppo_ratio_clip,
                                           1.0 + self.config.ppo_ratio_clip) * sampled_advantages
+
                 policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * entropy_loss.mean()
 
                 self.opt_act.zero_grad()

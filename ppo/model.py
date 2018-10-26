@@ -32,8 +32,8 @@ class Actor(nn.Module):
         )
         self.logstd = nn.Parameter(torch.zeros(action_size))
 
-    def forward(self, x):
-        return self.mu(x)
+    def forward(self, state):
+        return self.mu(state)
 
 
 class Critic(nn.Module):
@@ -48,8 +48,8 @@ class Critic(nn.Module):
             nn.Linear(fc2_units, 1),  # Value function
         )
 
-    def forward(self, x):
-        return self.value(x)
+    def forward(self, state):
+        return self.value(state)
 
 
 class ActorCritic(nn.Module):
@@ -61,16 +61,16 @@ class ActorCritic(nn.Module):
         self.critic = critic
         self.to(Config.DEVICE)
 
-    def forward(self, states, actions=None):
-        states = tensor(states)
-        mean = self.actor(states)
-        values = self.critic(states)
+    def forward(self, state, action=None):
+        state = tensor(state)
+        mean = self.actor(state)
+        values = self.critic(state)
         dist = torch.distributions.Normal(mean, torch.cuda.FloatTensor(self.actor.logstd.exp()))
-        if actions is None:
-            actions = dist.sample()
-        log_probs = dist.log_prob(actions)
+        if action is None:
+            action = dist.sample()
+        log_probs = dist.log_prob(action)
         log_probs = torch.sum(log_probs, dim=1, keepdim=True)
         dist_entropy = dist.entropy()
-        return actions, log_probs, dist_entropy, values
+        return action, log_probs, dist_entropy, values
 
 
