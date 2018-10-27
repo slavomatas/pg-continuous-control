@@ -18,7 +18,7 @@ def layer_init(layer, w_scale=1.0):
 
 
 class Actor(nn.Module):
-    def __init__(self, state_size, action_size, fc1_units=64, fc2_units=64):
+    def __init__(self, state_size, action_size, fc1_units=128, fc2_units=128):
         super(Actor, self).__init__()
 
         # Action mean

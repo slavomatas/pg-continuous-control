@@ -74,7 +74,7 @@ class PPOAgent(BaseAgent):
         rollout = []
         states = self.states
         for _ in range(config.rollout_length):
-            actions, new_log_probs, _, values = self.actor_critic(states)
+            actions, log_probs, _, values = self.actor_critic(states)
 
             env_info = self.env.step(actions.cpu().detach().numpy())[self.brain_name]
             next_states = env_info.vector_observations  # get the next state
@@ -89,7 +89,7 @@ class PPOAgent(BaseAgent):
                     self.online_rewards[i] = 0
 
             next_states = config.state_normalizer(next_states)
-            rollout.append([states, values.detach(), actions.detach(), new_log_probs.detach(), rewards, 1 - terminals])
+            rollout.append([states, values.detach(), actions.detach(), log_probs.detach(), rewards, 1 - terminals])
             states = next_states
 
         self.states = states
@@ -101,7 +101,7 @@ class PPOAgent(BaseAgent):
         returns = pending_value.detach()
 
         for i in reversed(range(len(rollout) - 1)):
-            states, value, actions, new_log_probs, rewards, terminals = rollout[i]
+            states, value, actions, log_probs, rewards, terminals = rollout[i]
             terminals = tensor(terminals).unsqueeze(1)
             rewards = tensor(rewards).unsqueeze(1)
             actions = tensor(actions)
@@ -113,7 +113,7 @@ class PPOAgent(BaseAgent):
             else:
                 td_error = rewards + config.discount * terminals * next_value.detach() - value.detach()
                 advantages = advantages * config.gae_tau * config.discount * terminals + td_error
-            processed_rollout[i] = [states, actions, new_log_probs, returns, advantages]
+            processed_rollout[i] = [states, actions, log_probs, returns, advantages]
 
         states, actions, log_probs_old, returns, advantages = map(lambda x: torch.cat(x, dim=0),
                                                                   zip(*processed_rollout))

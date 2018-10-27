@@ -49,7 +49,7 @@ def ppo():
     config.optimization_epochs = 10
     config.num_mini_batches = 512
     config.ppo_ratio_clip = 0.2
-    config.log_interval = 20 * 512
+    config.log_interval = 200 * 512
     config.max_steps = 2e7
     config.eval_episodes = 10
     # config.logger = get_logger()
@@ -74,10 +74,10 @@ def ppo():
             agent.episode_rewards = []
 
             print('\r===> Average Score: {:d} episodes {:.2f}'.format(len(scores), np.mean(scores_window)))
-            if np.mean(scores_window) >= 30.0:
+            if np.mean(scores_window) >= 1.0:
                 print('\nEnvironment solved in {:d}  episodes!\tAverage Score: {:.2f}'.format(len(scores_window),
                                                                                               np.mean(scores_window)))
-                torch.save(agent.network.state_dict(), '../checkpoints/ppo_checkpoint.pth')
+                torch.save(agent.actor_critic.state_dict(), '../checkpoints/ppo_checkpoint.pth')
                 break
 
             print('Total steps %d, returns %d/%.2f/%.2f/%.2f/%.2f (count/mean/median/min/max), %.2f steps/s' % (
