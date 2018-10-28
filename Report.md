@@ -115,7 +115,7 @@ self.soft_update(self.critic_local, self.critic_target, TAU)
 self.soft_update(self.actor_local, self.actor_target, TAU)                     
 ```
 
-# PPO - Proximal Policy Optimization
+# 2. PPO - Proximal Policy Optimization
 
 Proximal Policy Optimization (PPO) is a policy gradient-based method and is one of the algorithms that have been proven to be stable as well as scalable.
 
