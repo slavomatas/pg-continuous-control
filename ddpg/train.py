@@ -13,6 +13,9 @@ from agent import Agent
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+print("GPU available: {}".format(torch.cuda.is_available()))
+print("GPU tensor test: {}".format(torch.rand(3, 3).cuda()))
+
 env = UnityEnvironment(file_name="../Reacher_Linux/Reacher.x86_64", no_graphics=True)
 
 # get the default brain
@@ -40,9 +43,6 @@ score = 0  # initialize the score
 
 # Instantiate DDPG Agent
 agent = Agent(state_size=state_size, action_size=action_size, random_seed=0)
-
-print(torch.cuda.is_available())
-print(torch.rand(3, 3).cuda())
 
 
 def ddpg(n_episodes=1000, max_t=1000):
