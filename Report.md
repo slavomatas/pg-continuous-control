@@ -35,21 +35,21 @@ The model consists of two separate networks for the actor and critic and follows
 The actor is fully connected feed-forward network with two hidden layers, RELU activation and Batch Normalization. The input is an observation/state vector, while the output is a vector with N values, one for each action. The output actions are transformed with hyperbolic tangent non-linearity to squeeze the values to the -1..1 range.
 
 ```
-  BatchNorm1d
-    |
+    BatchNorm1d
+      |
 Fully Connected Layer (in=33 -> state size, out=128)
-    |
-  RELU
-  BatchNorm1d
-    |
+      |
+    RELU
+    BatchNorm1d
+      |
 Fully Connected Layer (in=128, out=128)
-    |
-  RELU
-  BatchNorm1d
-    |
+      |
+    RELU
+    BatchNorm1d
+      |
 Fully Connected Layer (in=128, out=4 -> action size)
-    |
-  tanh
+      |
+    tanh
 ```
 
 The critic includes two separate paths for observation and the actions, and those paths are concatenated together to be transformed into the critic output of one number. The forward() function of the critic first transforms the observations with its first network - model_input, then concatenates the output and given actions to transform them using second network – model_output into one single value of Q.
@@ -125,9 +125,9 @@ The PPO method uses a following objective function: the ratio between the new an
 
 In math form the objective proposed by the PPO is J<sub>θ</sub> = E<sub>t</sub>[ grad<sub>θ</sub>log π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>)A<sub>t</sub>].
 
-However, if we just start to blindly maximize this value, it may lead to a very large update to the policy weights. To limit the update, the clipped objective is used. If we write the ratio between the new and the old policy as r<sub>t</sub>(θ) = π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>)/π<sub>θ old</sub>(a<sub>t</sub>|s<sub>t</sub>) the clipped objective could be written as J <sup>clip</sup> <sub>θ</sub> = E<sub>t</sub>[min(r<sub>t</sub>(θ)A<sub>t</sub>, clip(r<sub>t</sub>(θ), 1 − \epsilon, 1 + \epsilon)A<sub>t</sub>)]. This objective limits the ratio between the old and the new policy to be in the interval [1 − \epsilon, 1 + \epsilon], so by varying # we can limit the size of the update.
+However, if we just start to blindly maximize this value, it may lead to a very large update to the policy weights. To limit the update, the clipped objective is used. If we write the ratio between the new and the old policy as r<sub>t</sub>(θ) = π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>)/π<sub>θ old</sub>(a<sub>t</sub>|s<sub>t</sub>) the clipped objective could be written as J <sup>clip</sup> <sub>θ</sub> = E<sub>t</sub>[min(r<sub>t</sub>(θ)A<sub>t</sub>, clip(r<sub>t</sub>(θ), 1 − epsilon, 1 + epsilon)A<sub>t</sub>)]. This objective limits the ratio between the old and the new policy to be in the interval [1 − epsilon, 1 + epsilon], so by varying epsilon we can limit the size of the update.
 
-Implementation
+## Implementation
 
 Both the actor and critic are placed in the separate networks without sharing weights.
 Actor estimates the mean and the standard deviation for the actions, but it is just a single parameter of the model. This parameter will be adjusted during the training by SGD, but it doesn't depend on the observation.
@@ -176,7 +176,7 @@ To train the critic, we calculate the Mean Squared Error (MSE) loss with the ref
 value_loss = 0.5 * F.mse_loss(sampled_returns, values)
 ```
 
-In the actor training, we minimize the negated clipped objective: E<sub>t</sub>[min(r<sub>t</sub>(θ)A<sub>t</sub>, clip(r<sub>t</sub>(θ), 1 − \epsilon, 1 + \epsilon)A<sub>t</sub>)], where r<sub>t</sub>(θ) = π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>)/π<sub>θ old</sub>(a<sub>t</sub>|s<sub>t</sub>).
+In the actor training, we minimize the negated clipped objective: E<sub>t</sub>[min(r<sub>t</sub>(θ)A<sub>t</sub>, clip(r<sub>t</sub>(θ), 1 − epsilon, 1 + epsilon)A<sub>t</sub>)], where r<sub>t</sub>(θ) = π<sub>θ</sub>(a<sub>t</sub>|s<sub>t</sub>)/π<sub>θ old</sub>(a<sub>t</sub>|s<sub>t</sub>).
 
 ```
 ratio = (new_log_probs - sampled_log_probs_old).exp()
