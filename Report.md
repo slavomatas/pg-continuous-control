@@ -199,14 +199,3 @@ policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * ent
  All training was performed on a single Ubuntu 18.04 desktop with an NVIDIA GTX 1080ti.
 
 ## Conclusion
-
-Comparing the performance scores shows that Dueling DQN Agent and DQN Agent with Prioritized Experience Replay achieved the best performance.
-
-Navigation with Pixels - so far i have tested basic DQN Agent with Prioritized Experience Replay using visual observations (frames).
-Unfortunately DQN Agent performance didnt show significant progress during the learning.
-I will try to implement few changes/improvements:
-    frame stacking (buffering)
-    reward clipping
-
-Categorical DQN - while this DQN agent good shows learning progress during training, i was expecting that the overall performance would exceed Dueling DQN agent
-and DQN Agent with Prioritized Experience Replay. I will try to investigate and test further.

@@ -3,6 +3,8 @@ from collections import deque
 import numpy as np
 import time
 import torch
+import matplotlib.pyplot as plt
+
 from agent import PPOAgent
 from config import Config
 from model import Actor, Critic, ActorCritic
@@ -49,13 +51,13 @@ def ppo():
     config.optimization_epochs = 10
     config.num_mini_batches = 512
     config.ppo_ratio_clip = 0.2
-    config.log_interval = 200 * 512
+    config.log_interval = 3 * 200 * 512
     config.max_steps = 2e7
     config.eval_episodes = 10
     # config.logger = get_logger()
 
-    print(torch.cuda.is_available())
-    print(torch.rand(3, 3).cuda())
+    print("GPU available: {}".format(torch.cuda.is_available()))
+    print("GPU tensor test: {}".format(torch.rand(3, 3).cuda()))
 
     agent = PPOAgent(config)
 
@@ -88,12 +90,17 @@ def ppo():
 
         agent.step()
 
+    return scores
+
 
 if __name__ == '__main__':
-    # mkdir('data/video')
-    # mkdir('dataset')
-    # mkdir('log')
     set_one_thread()
-    # select_device(-1)
     select_device(0)
-    ppo()
+    scores = ppo()
+
+    # plot the scores
+    fig = plt.figure()
+    plt.plot(np.arange(len(scores)), scores)
+    plt.ylabel('Score')
+    plt.xlabel('Episode #')
+    plt.show()
