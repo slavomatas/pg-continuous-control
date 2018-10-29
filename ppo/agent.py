@@ -71,6 +71,10 @@ class PPOAgent(BaseAgent):
         self.states = env_info.vector_observations
         self.states = config.state_normalizer(self.states)
 
+    def act(self, state):
+        action, log_probs, _, values = self.actor_critic(state)
+        return action
+
     def step(self):
         config = self.config
         rollout = []
