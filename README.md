@@ -67,6 +67,12 @@ running these commands from a command line where that environment has been activ
 
 #### Train
 
-To train a DDPG agent from scratch using the provided code run the train script in a respective package /ddpg or ppo.
+To train a DDPG agent from scratch using the provided code run the train script in a respective python package /ddpg or /ppo.
 
 `python3 train.py`
+
+#### Play
+
+To watch a pre-trained agent perform run the play script in the respective package.
+
+`python3 play.py`
