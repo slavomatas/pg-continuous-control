@@ -115,6 +115,19 @@ self.soft_update(self.critic_local, self.critic_target, TAU)
 self.soft_update(self.actor_local, self.actor_target, TAU)                     
 ```
 
+Agent parameters:
+
+```
+BUFFER_SIZE = 100000  # replay buffer size
+BATCH_SIZE = 256        # minibatch size
+GAMMA = 0.99            # discount factor
+TAU = 1e-3              # for soft update of target parameters
+LR_ACTOR = 1e-4         # learning rate of the actor
+LR_CRITIC = 1e-3        # learning rate of the critic
+WEIGHT_DECAY = 0        # L2 weight decay
+```
+
+
 # 2. PPO - Proximal Policy Optimization
 
 Proximal Policy Optimization (PPO) is a policy gradient-based method and is one of the algorithms that have been proven to be stable as well as scalable.
@@ -187,6 +200,20 @@ obj_clipped = ratio.clamp(1.0 - self.config.ppo_ratio_clip,
 policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * entropy_loss.mean()
 ```
 
+Agent parameters:
+
+```
+BATCH_SIZE = 256 # minibatch size
+LR_ACTOR = 1e-4  # learning rate of the actor
+LR_CRITIC = 1e-3 # learning rate of the critic
+DISCOUNT = 0.99
+USE_GAE = True
+GAE_TAU = 0.95
+ROLLOUT_LENGTH = 2048
+OPTIMIZATION_EPOCHS = 5
+BATCH_SIZE = 512 # minibatch size
+MAX_STEPS = 2e7
+
 
 ### System Setup
 
@@ -199,3 +226,7 @@ policy_loss = -torch.min(obj, obj_clipped).mean(0) - config.entropy_weight * ent
  All training was performed on a single Ubuntu 18.04 desktop with an NVIDIA GTX 1080ti.
 
 ## Conclusion
+
+The DDPG agent was able to train relative quickly compare to PPO agent. DDPG agent successfully solved environment in 252 episodes.
+The PPO agent solved evironment in ~ 5000 episodes and as seen on the scores chart it was not as stable as expected.
+I am trying to run run PPO again with different parameters, in particular LR_ACTOR is set now to 1e-5.

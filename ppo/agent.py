@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch_utils import tensor
 from utils import Batcher, close_obj
 
+LR_ACTOR = 1e-5         # learning rate of the actor
+LR_CRITIC = 1e-3        # learning rate of the critic
 
 class BaseAgent:
     def __init__(self, config):
@@ -57,8 +59,8 @@ class PPOAgent(BaseAgent):
 
         self.actor_critic = config.actor_critic_fn()
 
-        self.opt_act = torch.optim.Adam(self.actor_critic.actor.parameters(), lr=1e-4)
-        self.opt_crt = torch.optim.Adam(self.actor_critic.critic.parameters(), lr=1e-3)
+        self.opt_act = torch.optim.Adam(self.actor_critic.actor.parameters(), lr=LR_ACTOR)
+        self.opt_crt = torch.optim.Adam(self.actor_critic.critic.parameters(), lr=LR_CRITIC)
         self.opt = torch.optim.Adam(self.actor_critic.actor.parameters(), lr=1e-4)
 
         self.total_steps = 0

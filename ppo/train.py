@@ -47,11 +47,11 @@ def ppo():
     config.use_gae = True
     config.gae_tau = 0.95
     config.gradient_clip = 5
-    config.rollout_length = 20 * 512
-    config.optimization_epochs = 10
+    config.rollout_length = 2048
+    config.optimization_epochs = 5
     config.num_mini_batches = 512
     config.ppo_ratio_clip = 0.2
-    config.log_interval = 3 * 200 * 512
+    config.log_interval = 10*2048
     config.max_steps = 2e7
     config.eval_episodes = 10
     # config.logger = get_logger()
