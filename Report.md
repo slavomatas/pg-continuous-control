@@ -1,4 +1,4 @@
-# Implementing a DQN Agent
+# Implementing a DDPG Agent
 
 ## Summary
 
